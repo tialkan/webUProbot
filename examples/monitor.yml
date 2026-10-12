@@ -1,0 +1,32 @@
+# Kendi deponuzun .github/workflows/monitor.yml dosyasına kopyalayın.
+# Repository variable UPTIME_TARGET bir HTTPS adresi olmalı; EXPECTED_VERSION isteğe bağlı.
+name: Site observation
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *'
+permissions:
+  contents: read
+jobs:
+  observe:
+    if: vars.UPTIME_TARGET != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: tialkan/webUProbot
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Observe
+        env:
+          ROBOT_TARGET: ${{ vars.UPTIME_TARGET }}
+          EXPECTED_VERSION: ${{ vars.EXPECTED_VERSION }}
+        run: node bin/cli.js "$ROBOT_TARGET" --expected "$EXPECTED_VERSION" --output observation.jsonl
+      - uses: actions/upload-artifact@v4
+        with:
+          name: uptime-${{ github.run_id }}
+          path: observation.jsonl
+          retention-days: 7
